@@ -22,15 +22,23 @@ No backend, no build step, no telemetry. It's one `index.html` that runs entirel
 - Your API key is stored only in your browser's `localStorage` and is sent **directly** from your browser to the AI provider — it never passes through any other server.
 - For Anthropic, the app sends the `anthropic-dangerous-direct-browser-access` header so browser calls are permitted. Because the key lives in the browser, run this on your own machine, not a shared/hosted page.
 
-## How the anti-hallucination prompts work
+## The idea: decomposition as hallucination control
 
-Each generated prompt is deliberately scoped to a single atomic operation and includes:
+The decomposition tree isn't the point — it's the *mechanism*. The point is to control where the model is allowed to think.
 
-- a tightly-scoped expert **role**,
-- the one concrete **task**,
-- the **inputs needed** — with an instruction to *ask rather than invent* anything missing,
-- explicit **anti-hallucination rules** (no fabricated numbers/specs/sources; flag uncertainty),
-- the exact **output** form and a one-line *done* check.
+Hallucination is, mostly, a scope problem. When you ask a model to "build a rocket," it has to invent a plan, fill in unstated assumptions, guess numbers, and stitch together facts it was never given — and every one of those gaps is a place it can confidently make something up. The wider and vaguer the task, the more degrees of freedom it has to go wrong.
+
+This app attacks that by **shrinking the thinking space until there's almost nothing left to fabricate.** Recursively breaking the goal down into *basic operation units* keeps splitting a task until each leaf is small, concrete, and self-contained — a step where the right answer is essentially determined by its inputs. At that altitude the model isn't planning or imagining anymore; it's executing one well-defined operation.
+
+Then, for each leaf, the generated prompt is built to **pin the reasoning in place** rather than just bolt a "don't hallucinate" warning on the end:
+
+- a tightly-scoped expert **role**, so the model reasons from one narrow stance instead of ranging freely;
+- the single concrete **task**, leaving no planning to improvise;
+- the **inputs needed**, made explicit — with a standing instruction to *ask for anything missing rather than invent it*, which converts a silent guess into a visible question;
+- **anti-hallucination rules** that force the thinking out into the open: no fabricated numbers/specs/sources, state assumptions explicitly, and flag uncertainty instead of smoothing over it;
+- the exact **output** form plus a one-line *done* check, so success is verifiable rather than vibes.
+
+The result is a chain of prompts you run one at a time, each operating in a space narrow enough that the model has little room — and little reason — to make things up. The tree is just how you get the task down to that size.
 
 ## Tech
 
