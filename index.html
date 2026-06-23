@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>let AI think about doing…</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --bg-soft: #12151c;
+    --panel: #161a23;
+    --panel-2: #1c2230;
+    --border: #262d3b;
+    --border-soft: #1f2531;
+    --text: #e7ecf3;
+    --text-dim: #9aa6b8;
+    --text-faint: #5f6b7e;
+    --accent: #6ea8fe;
+    --accent-2: #a78bfa;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --radius: 12px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(110,168,254,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(167,139,250,0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 96px; }
+
+  header.top { margin-bottom: 24px; }
+  header.top h1 {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
+  header.top h1 .accent {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header.top p { color: var(--text-dim); margin: 0; max-width: 70ch; }
+
+  .panel {
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .panel > .panel-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 600;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel > .panel-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .col { flex: 1 1 200px; min-width: 0; }
+
+  input[type="text"], input[type="password"], textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea { resize: vertical; min-height: 88px; font-size: 15px; line-height: 1.55; }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(110,168,254,0.15);
+  }
+  select { appearance: none; -webkit-appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239aa6b8' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+  }
+
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: transform .05s, background .15s, border-color .15s, opacity .15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { background: #232a3a; border-color: #313b4f; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.primary {
+    background: linear-gradient(180deg, var(--accent), #4f8cf0);
+    border-color: #4f8cf0;
+    color: #05101f;
+  }
+  .btn.primary:hover { filter: brightness(1.06); background: linear-gradient(180deg, var(--accent), #4f8cf0); }
+  .btn.ghost { background: transparent; }
+  .btn.tiny { padding: 5px 10px; font-size: 12px; font-weight: 500; }
+
+  .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+  .hint code { font-family: var(--mono); background: var(--bg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border-soft); }
+
+  .controls-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 14px; }
+  .controls-bar .grow { flex: 1 1 auto; }
+
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .stepper button { background: var(--panel-2); border: none; color: var(--text); width: 34px; height: 38px; cursor: pointer; font-size: 16px; }
+  .stepper button:hover { background: #232a3a; }
+  .stepper .val { min-width: 36px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  #status { font-size: 13px; color: var(--text-dim); min-height: 20px; display: flex; align-items: center; gap: 8px; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #tree { margin-top: 8px; }
+  .empty-state { color: var(--text-faint); text-align: center; padding: 28px; border: 1px dashed var(--border); border-radius: var(--radius); font-size: 14px; }
+
+  .node { margin: 4px 0; }
+  .node-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: var(--panel);
+    transition: border-color .15s, background .15s;
+  }
+  .node-row:hover { border-color: var(--border); }
+  .node-row.atomic { background: linear-gradient(180deg, rgba(74,222,128,0.06), transparent); border-color: rgba(74,222,128,.25); }
+  .twist {
+    cursor: pointer; user-select: none;
+    width: 20px; height: 22px; flex: 0 0 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint); font-size: 11px; transition: transform .12s;
+  }
+  .twist.open { transform: rotate(90deg); }
+  .twist.leaf { visibility: hidden; }
+  .node-main { flex: 1 1 auto; min-width: 0; }
+  .node-title { font-weight: 600; font-size: 14.5px; word-wrap: break-word; }
+  .node-title .badge {
+    font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: 1px 6px; border-radius: 5px; margin-left: 8px; vertical-align: middle;
+  }
+  .badge.atom { color: var(--good); background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.3); }
+  .badge.goal { color: var(--accent); background: rgba(110,168,254,.12); border: 1px solid rgba(110,168,254,.3); }
+  .node-desc { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .node-actions { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .children { margin-left: 22px; padding-left: 12px; border-left: 1px solid var(--border-soft); }
+  .children.collapsed { display: none; }
+
+  #prompts .prompt-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-soft);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .prompt-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .prompt-head .idx {
+    flex: 0 0 auto;
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel-2); border: 1px solid var(--border);
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .prompt-head .title { flex: 1 1 auto; font-weight: 600; font-size: 14px; min-width: 0; }
+  .prompt-head .path { font-size: 11px; color: var(--text-faint); font-family: var(--mono); margin-top: 2px; }
+  .prompt-body {
+    margin: 0; padding: 14px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+    white-space: pre-wrap; word-wrap: break-word;
+    color: #cdd6e4; max-height: 320px; overflow: auto;
+  }
+  .copied-flash { color: var(--good) !important; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .toolbar .spacer { flex: 1 1 auto; }
+  .count-chip { font-size: 12px; color: var(--text-dim); }
+
+  details.adv { margin-top: 12px; }
+  details.adv summary { cursor: pointer; color: var(--text-dim); font-size: 13px; }
+  details.adv[open] summary { margin-bottom: 10px; }
+
+  .footer-note { color: var(--text-faint); font-size: 12px; margin-top: 24px; text-align: center; }
+  .key-status { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>let AI think about <span class="accent">doing…</span></h1>
+    <p>Give it any goal. It recursively breaks the goal down into <strong>basic operation units</strong> — the
+    smallest atomic steps — then writes a self-contained, hallucination-resistant prompt for each one, so you can
+    feed them to an AI one at a time to actually get the thing done.</p>
+  </header>
+
+  <!-- 1. API config -->
+  <section class="panel">
+    <div class="panel-title"><span class="num">1</span> Connect your AI</div>
+    <div class="row">
+      <div class="col" style="flex: 0 1 200px;">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+        </select>
+      </div>
+      <div class="col" style="flex: 0 1 240px;">
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="model id" />
+      </div>
+      <div class="col">
+        <label for="apikey">API key <span class="key-status" id="keyStatus"></span></label>
+        <input type="password" id="apikey" placeholder="sk-… (stored only in this browser)" autocomplete="off" />
+      </div>
+    </div>
+    <div class="controls-bar">
+      <button class="btn" id="saveKey">Save key</button>
+      <button class="btn ghost tiny" id="clearKey">Forget key</button>
+      <button class="btn ghost tiny" id="testKey">Test connection</button>
+      <span id="connStatus" class="hint" style="margin-top:0;"></span>
+    </div>
+    <p class="hint">Your key is stored in this browser's <code>localStorage</code> and sent directly from your
+    browser to the provider — it never touches any other server. For Anthropic the app sends the
+    <code>anthropic-dangerous-direct-browser-access</code> header so browser calls are allowed.</p>
+  </section>
+
+  <!-- 2. Goal -->
+  <section class="panel">
+    <div class="panel-title"><span class="num">2</span> What do you want to do?</div>
+    <textarea id="goal" placeholder="e.g. Build a model rocket that reaches 300 meters"></textarea>
+    <div class="controls-bar">
+      <div>
+        <label style="margin-bottom:4px;">Auto-breakdown depth</label>
+        <div class="stepper">
+          <button id="depthDown" type="button">−</button>
+          <span class="val" id="depthVal">2</span>
+          <button id="depthUp" type="button">+</button>
+        </div>
+      </div>
+      <div class="grow"></div>
+      <button class="btn primary" id="decompose">⌖ Break it down</button>
+    </div>
+    <details class="adv">
+      <summary>Advanced — domain / constraints</summary>
+      <label for="context" style="margin-top:8px;">Extra context the AI should assume (optional)</label>
+      <textarea id="context" style="min-height:60px;" placeholder="e.g. hobbyist budget, no machine shop, must be legal for amateurs in the US"></textarea>
+    </details>
+    <div id="status" style="margin-top:14px;"></div>
+  </section>
+
+  <!-- 3. Tree -->
+  <section class="panel">
+    <div class="panel-title"><span class="num">3</span> Decomposition tree</div>
+    <div class="toolbar">
+      <button class="btn ghost tiny" id="expandAll">Expand all</button>
+      <button class="btn ghost tiny" id="collapseAll">Collapse all</button>
+      <div class="spacer"></div>
+      <span class="count-chip" id="treeCount"></span>
+    </div>
+    <div id="tree"></div>
+  </section>
+
+  <!-- 4. Prompts -->
+  <section class="panel">
+    <div class="panel-title"><span class="num">4</span> Execution prompts — one atomic step at a time</div>
+    <p class="hint" style="margin-top:0; margin-bottom:14px;">Each <strong>basic operation</strong> (green nodes)
+    gets a tightly-scoped prompt designed to keep the AI grounded: explicit task, given inputs, what counts as
+    done, and a rule to refuse / ask instead of inventing facts. Copy them in order.</p>
+    <div class="toolbar">
+      <button class="btn" id="genPrompts">✦ Generate prompts for all basic operations</button>
+      <button class="btn ghost tiny" id="copyAll">Copy all</button>
+      <div class="spacer"></div>
+      <span class="count-chip" id="promptCount"></span>
+    </div>
+    <div id="prompts"></div>
+  </section>
+
+  <p class="footer-note">Runs entirely in your browser. No backend, no telemetry. Your tree is kept in this tab until you reload.</p>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------- state ---------------- */
+const DEFAULT_MODELS = {
+  anthropic: "claude-opus-4-8",
+  openai: "gpt-4o-mini",
+};
+let depth = 2;
+let tree = null;       // root node
+let idCounter = 0;
+const nodeMap = new Map();
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------------- small DOM helpers (no innerHTML) ---------------- */
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function el(tag, opts = {}, children = []) {
+  const node = document.createElement(tag);
+  if (opts.class) node.className = opts.class;
+  if (opts.text != null) node.textContent = opts.text;
+  if (opts.title) node.title = opts.title;
+  if (opts.style) node.setAttribute("style", opts.style);
+  for (const c of children) if (c) node.appendChild(c);
+  return node;
+}
+function emptyState(host, text) {
+  clear(host);
+  host.appendChild(el("div", { class: "empty-state", text }));
+}
+
+/* ---------------- persistence ---------------- */
+function lsKey(provider) { return "lat_key_" + provider; }
+function loadKeyUI() {
+  const provider = $("provider").value;
+  const key = localStorage.getItem(lsKey(provider)) || "";
+  $("apikey").value = key;
+  $("model").value = localStorage.getItem("lat_model_" + provider) || DEFAULT_MODELS[provider];
+  $("keyStatus").textContent = key ? "• saved" : "";
+  $("keyStatus").style.color = key ? "var(--good)" : "var(--text-faint)";
+}
+$("provider").addEventListener("change", () => { loadKeyUI(); $("connStatus").textContent = ""; });
+$("saveKey").addEventListener("click", () => {
+  const provider = $("provider").value;
+  localStorage.setItem(lsKey(provider), $("apikey").value.trim());
+  localStorage.setItem("lat_model_" + provider, $("model").value.trim() || DEFAULT_MODELS[provider]);
+  loadKeyUI();
+  flash($("connStatus"), "Saved.", "var(--good)");
+});
+$("clearKey").addEventListener("click", () => {
+  const provider = $("provider").value;
+  localStorage.removeItem(lsKey(provider));
+  $("apikey").value = "";
+  loadKeyUI();
+  flash($("connStatus"), "Forgotten.", "var(--text-dim)");
+});
+function flash(el2, msg, color) {
+  el2.textContent = msg; el2.style.color = color || "var(--text-dim)";
+  setTimeout(() => { if (el2.textContent === msg) el2.textContent = ""; }, 2500);
+}
+
+/* ---------------- depth stepper ---------------- */
+$("depthUp").addEventListener("click", () => { depth = Math.min(5, depth + 1); $("depthVal").textContent = depth; });
+$("depthDown").addEventListener("click", () => { depth = Math.max(1, depth - 1); $("depthVal").textContent = depth; });
+
+/* ---------------- AI call layer ---------------- */
+function getConfig() {
+  const provider = $("provider").value;
+  const key = $("apikey").value.trim() || localStorage.getItem(lsKey(provider)) || "";
+  const model = $("model").value.trim() || DEFAULT_MODELS[provider];
+  return { provider, key, model };
+}
+
+async function callAI(systemPrompt, userPrompt, { json = false } = {}) {
+  const { provider, key, model } = getConfig();
+  if (!key) throw new Error("No API key set. Add your key in section 1.");
+
+  if (provider === "anthropic") {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+    if (!res.ok) throw new Error("Anthropic " + res.status + ": " + (await safeErr(res)));
+    const data = await res.json();
+    return (data.content || []).map(b => b.text || "").join("").trim();
+  } else {
+    const body = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    };
+    if (json) body.response_format = { type: "json_object" };
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", "authorization": "Bearer " + key },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error("OpenAI " + res.status + ": " + (await safeErr(res)));
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content || "").trim();
+  }
+}
+async function safeErr(res) {
+  try { const j = await res.json(); return j.error?.message || JSON.stringify(j); }
+  catch { return res.statusText; }
+}
+
+/* extract a JSON object/array from a model response that may be fenced or chatty */
+function extractJSON(text) {
+  if (!text) throw new Error("Empty response from AI.");
+  let t = text.trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  const candidates = ["{", "["].map(c => t.indexOf(c)).filter(i => i !== -1);
+  if (candidates.length === 0) throw new Error("No JSON found in AI response.");
+  const start = Math.min(...candidates);
+  const end = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+  return JSON.parse(t.slice(start, end + 1));
+}
+
+/* ---------------- test connection ---------------- */
+$("testKey").addEventListener("click", async () => {
+  const s = $("connStatus");
+  s.style.color = "var(--text-dim)"; s.textContent = "Testing…";
+  try {
+    const out = await callAI("You are a connection tester.", "Reply with exactly the word: OK");
+    if (/ok/i.test(out)) flash(s, "✓ Connected.", "var(--good)");
+    else flash(s, "Connected (reply: " + out.slice(0,40) + ")", "var(--warn)");
+  } catch (e) {
+    s.style.color = "var(--bad)"; s.textContent = "✗ " + e.message;
+  }
+});
+
+/* ---------------- decomposition prompts ---------------- */
+const DECOMP_SYSTEM =
+`You are a meticulous systems decomposer. You break a goal or task into its constituent parts.
+A "basic operation unit" (atomic) is a step that is concrete, self-contained, and small enough to be
+executed in a single focused action without needing further planning — e.g. "cut a 30cm balsa tube",
+"calculate required thrust from target altitude". Anything still abstract or multi-part is NOT atomic.
+
+Always answer ONLY with strict JSON, no commentary, in this exact shape:
+{
+  "atomic": boolean,
+  "children": [
+    { "title": "short imperative name", "description": "one sentence: what this part is", "atomic": boolean }
+  ]
+}
+Rules:
+- 2 to 6 children. Each child is a distinct sub-part of the parent, together covering it with no overlap.
+- Mark a child "atomic": true only if it is itself a basic operation unit needing no further breakdown.
+- Keep titles under ~8 words. Be domain-appropriate and realistic.`;
+
+function decompUser(node, ctx) {
+  const path = pathTo(node).map(n => n.title).join(" → ");
+  return `Goal context path: ${path}
+${ctx ? "Assumed context/constraints: " + ctx + "\n" : ""}Decompose this specific task into its basic parts: "${node.title}"${node.description ? " (" + node.description + ")" : ""}`;
+}
+
+/* ---------------- tree model ---------------- */
+function makeNode(title, description, atomic) {
+  const n = { id: ++idCounter, title, description: description || "", atomic: !!atomic, children: [], open: true, prompt: null, loading: false };
+  nodeMap.set(n.id, n);
+  return n;
+}
+function pathTo(node) {
+  const path = [];
+  (function up(n) { if (!n) return; const p = parentOf(n); if (p) up(p); path.push(n); })(node);
+  return path;
+}
+function parentOf(node) {
+  let found = null;
+  (function walk(n) { for (const c of n.children) { if (c === node) found = n; else walk(c); } })(tree);
+  return found;
+}
+function allNodes() {
+  const out = [];
+  (function walk(n) { if (!n) return; out.push(n); n.children.forEach(walk); })(tree);
+  return out;
+}
+function atomicLeaves() {
+  return allNodes().filter(n => n !== tree && n.atomic);
+}
+
+/* expand a node via AI; if recurseDepth>0, recurse into produced non-atomic children */
+async function expandNode(node, ctx, recurseDepth) {
+  setStatus(`Breaking down: "${node.title}"…`, true);
+  const raw = await callAI(DECOMP_SYSTEM, decompUser(node, ctx), { json: true });
+  const data = extractJSON(raw);
+  if (data.atomic && (!data.children || data.children.length === 0)) {
+    node.atomic = true; node.children = [];
+    return;
+  }
+  node.atomic = false;
+  node.children = (data.children || []).map(c => makeNode(c.title, c.description, c.atomic));
+  node.open = true;
+  render();
+  if (recurseDepth > 0) {
+    for (const child of node.children) {
+      if (!child.atomic) await expandNode(child, ctx, recurseDepth - 1);
+    }
+  }
+}
+
+/* ---------------- main: decompose ---------------- */
+$("decompose").addEventListener("click", async () => {
+  const goal = $("goal").value.trim();
+  if (!goal) { setStatus("Enter a goal first.", false, "warn"); return; }
+  const { key } = getConfig();
+  if (!key) { setStatus("Add your API key in section 1 first.", false, "bad"); return; }
+
+  const ctx = $("context").value.trim();
+  idCounter = 0; nodeMap.clear();
+  tree = makeNode(goal, "", false);
+  render();
+  $("decompose").disabled = true;
+  try {
+    await expandNode(tree, ctx, depth - 1);
+    setStatus(`Done. ${atomicLeaves().length} basic operations found. Refine the tree, then generate prompts below.`, false, "good");
+  } catch (e) {
+    setStatus("Error: " + e.message, false, "bad");
+  } finally {
+    $("decompose").disabled = false;
+    render();
+  }
+});
+
+/* ---------------- rendering ---------------- */
+function setStatus(msg, busy, kind) {
+  const host = $("status");
+  clear(host);
+  if (busy) host.appendChild(el("span", { class: "spinner" }));
+  const color = kind === "good" ? "var(--good)" : kind === "bad" ? "var(--bad)" : kind === "warn" ? "var(--warn)" : "var(--text-dim)";
+  host.appendChild(el("span", { text: msg, style: "color:" + color }));
+}
+
+function render() {
+  const host = $("tree");
+  if (!tree) { emptyState(host, "Your goal's breakdown will appear here as an expandable tree."); return; }
+  clear(host);
+  host.appendChild(renderNode(tree, true));
+  const leaves = atomicLeaves().length;
+  $("treeCount").textContent = (allNodes().length - 1) + " nodes · " + leaves + " basic operations";
+  renderPrompts();
+}
+
+function renderNode(node, isRoot) {
+  const wrap = el("div", { class: "node" });
+  const row = el("div", { class: "node-row" + (node.atomic && !isRoot ? " atomic" : "") });
+
+  const hasKids = node.children.length > 0;
+  const twist = el("div", { class: "twist" + (node.open ? " open" : "") + (hasKids ? "" : " leaf"), text: "▶" });
+  if (hasKids) twist.addEventListener("click", () => { node.open = !node.open; render(); });
+  row.appendChild(twist);
+
+  const main = el("div", { class: "node-main" });
+  const title = el("div", { class: "node-title", text: node.title });
+  if (isRoot) title.appendChild(el("span", { class: "badge goal", text: "goal" }));
+  else if (node.atomic) title.appendChild(el("span", { class: "badge atom", text: "basic op" }));
+  main.appendChild(title);
+  if (node.description) main.appendChild(el("div", { class: "node-desc", text: node.description }));
+  row.appendChild(main);
+
+  const actions = el("div", { class: "node-actions" });
+  if (node.loading) {
+    actions.appendChild(el("span", { class: "spinner" }));
+  } else {
+    actions.appendChild(mkBtn("＋ break down", "tiny ghost", async () => {
+      const ctx = $("context").value.trim();
+      node.loading = true; render();
+      try { await expandNode(node, ctx, 0); setStatus('Expanded "' + node.title + '".', false, "good"); }
+      catch (e) { setStatus("Error: " + e.message, false, "bad"); }
+      finally { node.loading = false; render(); }
+    }));
+    if (!isRoot) {
+      actions.appendChild(mkBtn(node.atomic ? "unmark" : "✓ basic op", "tiny ghost", () => {
+        node.atomic = !node.atomic;
+        if (node.atomic) node.children = [];
+        render();
+      }));
+      actions.appendChild(mkBtn("edit", "tiny ghost", () => {
+        const t = prompt("Edit step name:", node.title);
+        if (t !== null && t.trim()) { node.title = t.trim(); render(); }
+      }));
+      const del = mkBtn("✕", "tiny ghost", () => {
+        const p = parentOf(node);
+        if (p) { p.children = p.children.filter(c => c !== node); render(); }
+      });
+      del.title = "Remove this node";
+      actions.appendChild(del);
+    }
+  }
+  row.appendChild(actions);
+  wrap.appendChild(row);
+
+  if (hasKids) {
+    const kids = el("div", { class: "children" + (node.open ? "" : " collapsed") });
+    node.children.forEach(c => kids.appendChild(renderNode(c, false)));
+    wrap.appendChild(kids);
+  }
+  return wrap;
+}
+
+function mkBtn(label, cls, onClick) {
+  const b = el("button", { class: "btn " + cls, text: label });
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+$("expandAll").addEventListener("click", () => { allNodes().forEach(n => n.open = true); render(); });
+$("collapseAll").addEventListener("click", () => { allNodes().forEach(n => { if (n !== tree) n.open = false; }); render(); });
+
+/* ---------------- prompt generation ---------------- */
+const PROMPT_SYSTEM =
+`You write execution prompts for a single, atomic operation. The user will paste your prompt into a fresh AI
+chat to actually perform that one step. Your prompt MUST keep the AI grounded and hallucination-resistant.
+
+Return ONLY the prompt text the user should paste (no preamble, no markdown fences, no explanation).
+
+The prompt you write must include, in clear sections:
+- ROLE: a tightly-scoped expert role for just this operation.
+- TASK: the single operation to perform, stated concretely.
+- CONTEXT: where this fits in the larger goal (one line), and what inputs/results from prior steps it assumes.
+- INPUTS NEEDED: an explicit list of facts/values the AI must have; instruct it to ASK for any it lacks rather than invent them.
+- ANTI-HALLUCINATION RULES: do not fabricate numbers, sources, specs, or facts; if unknown, say "unknown" or ask; show reasoning/assumptions explicitly; flag anything uncertain.
+- OUTPUT: the exact form of a successful result, and a one-line check for "done".
+Keep it under ~250 words, practical, and specific to THIS operation.`;
+
+function promptUser(node, goal, ctx) {
+  const path = pathTo(node).map(n => n.title).join(" → ");
+  return `Overall goal: ${goal}
+${ctx ? "Constraints/context: " + ctx + "\n" : ""}Position in plan: ${path}
+Atomic operation to write a prompt for: "${node.title}"${node.description ? " — " + node.description : ""}`;
+}
+
+$("genPrompts").addEventListener("click", async () => {
+  if (!tree) { setStatus("Build a tree first.", false, "warn"); return; }
+  const leaves = atomicLeaves();
+  if (leaves.length === 0) { setStatus("Mark at least one node as a basic operation (✓ basic op).", false, "warn"); return; }
+  const { key } = getConfig();
+  if (!key) { setStatus("Add your API key first.", false, "bad"); return; }
+
+  const goal = tree.title;
+  const ctx = $("context").value.trim();
+  $("genPrompts").disabled = true;
+  let done = 0;
+  try {
+    for (const leaf of leaves) {
+      leaf.loading = true; renderPrompts();
+      setStatus(`Writing prompt ${done + 1}/${leaves.length}: "${leaf.title}"…`, true);
+      try { leaf.prompt = await callAI(PROMPT_SYSTEM, promptUser(leaf, goal, ctx)); }
+      catch (e) { leaf.prompt = "⚠ Failed to generate: " + e.message; }
+      leaf.loading = false; done++;
+      renderPrompts();
+    }
+    setStatus(`Generated ${done} execution prompts. Copy them one at a time, in order.`, false, "good");
+  } finally {
+    $("genPrompts").disabled = false;
+    renderPrompts();
+  }
+});
+
+function renderPrompts() {
+  const host = $("prompts");
+  if (!tree) { emptyState(host, "No prompts yet. Build a tree, mark the smallest steps as basic operations, then generate prompts."); return; }
+  const leaves = atomicLeaves();
+  const ready = leaves.filter(l => l.prompt).length;
+  $("promptCount").textContent = leaves.length ? (ready + " / " + leaves.length + " ready") : "";
+  const shown = leaves.filter(l => l.prompt || l.loading);
+  if (shown.length === 0) {
+    emptyState(host, "No prompts yet. Mark the smallest steps as basic operations (✓ basic op), then click generate.");
+    return;
+  }
+  clear(host);
+  leaves.forEach((leaf, i) => {
+    if (!leaf.prompt && !leaf.loading) return;
+    const card = el("div", { class: "prompt-card" });
+    const head = el("div", { class: "prompt-head" });
+    head.appendChild(el("div", { class: "idx", text: String(i + 1) }));
+    const tt = el("div", { class: "title", text: leaf.title }, [
+      el("div", { class: "path", text: pathTo(leaf).map(n => n.title).join(" → ") }),
+    ]);
+    head.appendChild(tt);
+    if (leaf.loading) {
+      head.appendChild(el("span", { class: "spinner" }));
+    } else {
+      const copy = mkBtn("Copy", "tiny", () => {
+        navigator.clipboard.writeText(leaf.prompt).then(() => {
+          copy.textContent = "✓ Copied"; copy.classList.add("copied-flash");
+          setTimeout(() => { copy.textContent = "Copy"; copy.classList.remove("copied-flash"); }, 1500);
+        });
+      });
+      head.appendChild(copy);
+    }
+    card.appendChild(head);
+    card.appendChild(el("pre", { class: "prompt-body", text: leaf.loading ? "Generating…" : leaf.prompt }));
+    host.appendChild(card);
+  });
+}
+
+$("copyAll").addEventListener("click", () => {
+  const leaves = atomicLeaves().filter(l => l.prompt);
+  if (!leaves.length) return;
+  const text = leaves.map((l, i) => `=== PROMPT ${i + 1}: ${l.title} ===\n${l.prompt}`).join("\n\n\n");
+  navigator.clipboard.writeText(text).then(() => flash($("connStatus"), "All prompts copied.", "var(--good)"));
+});
+
+/* ---------------- init ---------------- */
+loadKeyUI();
+emptyState($("tree"), "Your goal's breakdown will appear here as an expandable tree. Enter a goal above and click “Break it down”.");
+emptyState($("prompts"), "No prompts yet. Build a tree, mark the smallest steps as basic operations, then generate prompts.");
+</script>
+</body>
+</html>
